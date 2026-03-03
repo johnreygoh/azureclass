@@ -1,0 +1,344 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "loadBalancers_loadbalancer1_name": {
+            "defaultValue": "loadbalancer1",
+            "type": "String"
+        },
+        "virtualMachines_windowserver3_1_name": {
+            "defaultValue": "windowserver3-1",
+            "type": "String"
+        },
+        "virtualMachines_windowserver3_2_name": {
+            "defaultValue": "windowserver3-2",
+            "type": "String"
+        },
+        "virtualNetworks_resourcegroup3_vnet_name": {
+            "defaultValue": "resourcegroup3-vnet",
+            "type": "String"
+        },
+        "publicIPAddresses_windowserver3_1_ip_name": {
+            "defaultValue": "windowserver3-1-ip",
+            "type": "String"
+        },
+        "publicIPAddresses_windowserver3_2_ip_name": {
+            "defaultValue": "windowserver3-2-ip",
+            "type": "String"
+        },
+        "networkInterfaces_windowserver3_1831_z1_name": {
+            "defaultValue": "windowserver3-1-nic",
+            "type": "String"
+        },
+        "networkInterfaces_windowserver3_1843_z2_name": {
+            "defaultValue": "windowserver3-2-nic",
+            "type": "String"
+        },
+        "publicIPAddresses_loadbalancer1_publicip_name": {
+            "defaultValue": "loadbalancer1-publicip",
+            "type": "String"
+        },
+        "networkSecurityGroups_windowserver3_1_nsg_name": {
+            "defaultValue": "windowserver3-nsg",
+            "type": "String"
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Admin password for the Virtual Machines"
+            }
+        }
+    },
+    "variables": {
+        "lbBackendPoolName": "[concat(parameters('loadBalancers_loadbalancer1_name'), '-backendpool01')]",
+        "lbFrontendConfigName": "[concat(parameters('loadBalancers_loadbalancer1_name'), '-frontendconfig01')]",
+        "lbProbeName": "[concat(parameters('loadBalancers_loadbalancer1_name'), '-probe01')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('networkSecurityGroups_windowserver3_1_nsg_name')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "RDP",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "HTTP",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 320,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('publicIPAddresses_loadbalancer1_publicip_name')]",
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Standard" },
+            "zones": ["1", "2", "3"],
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('publicIPAddresses_windowserver3_1_ip_name')]",
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Standard" },
+            "zones": ["1", "2", "3"],
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('publicIPAddresses_windowserver3_2_ip_name')]",
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Standard" },
+            "zones": ["1", "2", "3"],
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('virtualNetworks_resourcegroup3_vnet_name')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": { "addressPrefixes": ["10.0.0.0/16"] },
+                "subnets": [
+                    {
+                        "name": "default",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('loadBalancers_loadbalancer1_name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_loadbalancer1_publicip_name'))]"
+            ],
+            "sku": { "name": "Standard" },
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('lbFrontendConfigName')]",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_loadbalancer1_publicip_name'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('lbBackendPoolName')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "LBRule-HTTP",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('loadBalancers_loadbalancer1_name'), variables('lbFrontendConfigName'))]"
+                            },
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "protocol": "Tcp",
+                            "backendAddressPool": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_loadbalancer1_name'), variables('lbBackendPoolName'))]"
+                            },
+                            "probe": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('loadBalancers_loadbalancer1_name'), variables('lbProbeName'))]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('lbProbeName')]",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 80,
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('networkInterfaces_windowserver3_1831_z1_name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_windowserver3_1_ip_name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_resourcegroup3_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_loadbalancer1_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_windowserver3_1_nsg_name'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_windowserver3_1_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_resourcegroup3_vnet_name'), 'default')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_loadbalancer1_name'), variables('lbBackendPoolName'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_windowserver3_1_nsg_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2024-07-01",
+            "name": "[parameters('networkInterfaces_windowserver3_1843_z2_name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_windowserver3_2_ip_name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_resourcegroup3_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_loadbalancer1_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_windowserver3_1_nsg_name'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_windowserver3_2_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_resourcegroup3_vnet_name'), 'default')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_loadbalancer1_name'), variables('lbBackendPoolName'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_windowserver3_1_nsg_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2024-11-01",
+            "name": "[parameters('virtualMachines_windowserver3_1_name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_windowserver3_1831_z1_name'))]"
+            ],
+            "zones": ["1"],
+            "properties": {
+                "hardwareProfile": { "vmSize": "Standard_B2s" },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-datacenter-gensecond",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": { "storageAccountType": "Standard_LRS" }
+                    }
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachines_windowserver3_1_name')]",
+                    "adminUsername": "azureadmin",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        { "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_windowserver3_1831_z1_name'))]" }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2024-11-01",
+            "name": "[parameters('virtualMachines_windowserver3_2_name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_windowserver3_1843_z2_name'))]"
+            ],
+            "zones": ["2"],
+            "properties": {
+                "hardwareProfile": { "vmSize": "Standard_B2s" },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-datacenter-gensecond",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": { "storageAccountType": "Standard_LRS" }
+                    }
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachines_windowserver3_2_name')]",
+                    "adminUsername": "azureadmin",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        { "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_windowserver3_1843_z2_name'))]" }
+                    ]
+                }
+            }
+        }
+    ]
+}
