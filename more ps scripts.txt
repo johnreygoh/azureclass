@@ -35,6 +35,10 @@ $rpName = "YourIndividualRestorePointName"
 # Force the removal of the specific restore point
 Remove-AzRestorePoint -ResourceGroupName $rg -RestorePointCollectionName $rpcName -Name $rpName -Force
 
+-----------------------------------------------------------------------------------------
+
+az storage blob list --account-name <storage-account> --container-name <container> --query "[?properties.blobTier == 'Cool'].name" --output tsv | xargs -I {} az storage blob set-tier --account-name <storage-account> --container-name <container> --tier <new-tier> --name "{}"
+
 
 
 
