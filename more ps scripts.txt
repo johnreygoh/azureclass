@@ -6,12 +6,15 @@
 Connect-AzAccount -Identity
 
 # 2. Define the target Resource Group
-$resourceGroupName = "YourResourceGroupNameHere"
+$resourceGroupName = "resourcegroup7"
 
 Write-Output "--- Starting Morning Briefing for Resource Group: $resourceGroupName ---"
 
 # 3. Get all VMs in that group that are currently deallocated (stopped)
-$vms = Get-AzVM -ResourceGroupName $resourceGroupName | Where-Object { $_.ExtendedStatus.Statuses.Code -contains 'PowerState/deallocated' }
+# $vms = Get-AzVM -ResourceGroupName $resourceGroupName | Where-Object { $_.ExtendedStatus.Statuses.Code -contains 'PowerState/stopped' }
+# $vms = Get-AzVM -ResourceGroupName $resourceGroupName 
+$vms = Get-AzVM -ResourceGroupName resourcegroup7 -Status | Where-Object { $_.PowerState -eq 'VM deallocated' -or $_.PowerState -eq 'VM stopped'}
+
 
 if ($vms.Count -eq 0) {
     Write-Output "No stopped VMs found. All systems are already operational."
@@ -22,7 +25,6 @@ if ($vms.Count -eq 0) {
     }
     Write-Output "Command sent to all VMs."
 }
-
 ----------------------------------------------------------------------------------------------
 
 force delete restore point
@@ -61,6 +63,7 @@ Perf
 
 
 -------------------------------------------------------------------------------
+
 
 
 
