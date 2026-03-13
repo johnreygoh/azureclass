@@ -37,8 +37,14 @@ Remove-AzRestorePoint -ResourceGroupName $rg -RestorePointCollectionName $rpcNam
 
 -----------------------------------------------------------------------------------------
 
-az storage blob list --account-name <storage-account> --container-name <container> --query "[?properties.blobTier == 'Cool'].name" --output tsv | xargs -I {} az storage blob set-tier --account-name <storage-account> --container-name <container> --tier <new-tier> --name "{}"
+kql to check running vms
 
+Heartbeat
+| where TimeGenerated > ago(10m)
+| summarize LastHeartbeat = max(TimeGenerated) by Computer, ResourceGroup, OSType
+| project Computer, LastHeartbeat, Status = "Running/Responsive"
+
+-------------------------------------------------------------------------------
 
 
 
