@@ -29,13 +29,12 @@ if ($vms.Count -eq 0) {
 
 force delete restore point
 
-# Set your variables
-$rg = "YourResourceGroupName"
-$rpcName = "YourRestorePointCollectionName"
-$rpName = "YourIndividualRestorePointName"
+az resource delete --ids "/subscriptions/<subscriptionID>/resourceGroups/<resourcegroupName>/providers/Microsoft.Compute/restorePointCollections/<restorePointCollectionName>/restorePoints/<restorePointName>" --api-version=2024-11-01 --verbose
 
-# Force the removal of the specific restore point
-Remove-AzRestorePoint -ResourceGroupName $rg -RestorePointCollectionName $rpcName -Name $rpName -Force
+# replace the placeholders, example:
+az resource delete --ids "/subscriptions/8b14b4df-ac9f-4ac1-b312-b23405fa5b54/resourceGroups/AzureBackupRG_southeastasia_1/providers/Microsoft.Compute/restorePointCollections/AzureBackup_windows2_2262020873998138167/restorePoints/AzureBackup_20260312_054445" --api-version=2024-11-01 --verbose
+
+# you can now delete the resource group afterwards
 
 -----------------------------------------------------------------------------------------
 
@@ -63,6 +62,7 @@ Perf
 
 
 -------------------------------------------------------------------------------
+
 
 
 
