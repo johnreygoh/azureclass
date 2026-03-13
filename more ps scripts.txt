@@ -1,0 +1,45 @@
+---------------------------------------------------------------------------------------------------------
+(runbook) ps script for autostart all vms
+
+
+# 1. Connect to Azure using the Managed Identity
+Connect-AzAccount -Identity
+
+# 2. Define the target Resource Group
+$resourceGroupName = "YourResourceGroupNameHere"
+
+Write-Output "--- Starting Morning Briefing for Resource Group: $resourceGroupName ---"
+
+# 3. Get all VMs in that group that are currently deallocated (stopped)
+$vms = Get-AzVM -ResourceGroupName $resourceGroupName | Where-Object { $_.ExtendedStatus.Statuses.Code -contains 'PowerState/deallocated' }
+
+if ($vms.Count -eq 0) {
+    Write-Output "No stopped VMs found. All systems are already operational."
+} else {
+    foreach ($vm in $vms) {
+        Write-Output "Authorizing Power-On for: $($vm.Name)..."
+        Start-AzVM -ResourceGroupName $resourceGroupName -Name $vm.Name -NoWait
+    }
+    Write-Output "Command sent to all VMs."
+}
+
+----------------------------------------------------------------------------------------------
+
+force delete restore point
+
+# Set your variables
+$rg = "YourResourceGroupName"
+$rpcName = "YourRestorePointCollectionName"
+$rpName = "YourIndividualRestorePointName"
+
+# Force the removal of the specific restore point
+Remove-AzRestorePoint -ResourceGroupName $rg -RestorePointCollectionName $rpcName -Name $rpName -Force
+
+
+
+
+
+
+
+
+
