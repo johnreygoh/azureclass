@@ -50,15 +50,18 @@ kql to see ram and cpu usage of vms
 Perf
 | where TimeGenerated > ago(1h)
 | where CounterName in ("% Processor Time", "Available MBytes", "% Committed Bytes In Use")
+// Optional: Ensure we only get the Total CPU, not individual cores
+| where InstanceName == "_Total" or InstanceName == "" 
 | summarize AvgUsage = avg(CounterValue) by Computer, CounterName
 | evaluate pivot(CounterName, avg(AvgUsage))
 | project Computer, 
-    CPU_Percent = [% Processor Time], 
-    Memory_Available_MB = [Available MBytes], 
-    Memory_Used_Percent = [% Committed Bytes In Use]
+    CPU_Percent = column_ifexists('% Processor Time', 0), 
+    Memory_Available_MB = column_ifexists('Available MBytes', 0), 
+    Memory_Used_Percent = column_ifexists('% Committed Bytes In Use', 0)
 
 
 -------------------------------------------------------------------------------
+
 
 
 
