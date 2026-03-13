@@ -44,7 +44,22 @@ Heartbeat
 | summarize LastHeartbeat = max(TimeGenerated) by Computer, ResourceGroup, OSType
 | project Computer, LastHeartbeat, Status = "Running/Responsive"
 
+
+kql to see ram and cpu usage of vms
+
+Perf
+| where TimeGenerated > ago(1h)
+| where CounterName in ("% Processor Time", "Available MBytes", "% Committed Bytes In Use")
+| summarize AvgUsage = avg(CounterValue) by Computer, CounterName
+| evaluate pivot(CounterName, avg(AvgUsage))
+| project Computer, 
+    CPU_Percent = [% Processor Time], 
+    Memory_Available_MB = [Available MBytes], 
+    Memory_Used_Percent = [% Committed Bytes In Use]
+
+
 -------------------------------------------------------------------------------
+
 
 
 
